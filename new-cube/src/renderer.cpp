@@ -42,29 +42,24 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
     BeginMode3D(camera);
 
     // 绘制魔方的所有小方块
-    bool animating = controller.isRotating();
-    Axis rotAxis = controller.getRotationAxis();
-    int rotLayer = controller.getRotationLayer();
-    float angle = controller.getRotationAngle();
-    bool cw = controller.isRotationClockwise();
+    // bool animating = controller.isRotating();
+    // Axis rotAxis = controller.getRotationAxis();
+    // int rotLayer = controller.getRotationLayer();
+    // float angle = controller.getRotationAngle();
+    // bool cw = controller.isRotationClockwise();
 
     // 若正在动画且逆时针，则取反角度方便应用
     // if (animating && !cw) {
     //     angle = -angle;
     // }
-    if (animating)
-    {
-        // 对 Y 和 Z 轴：逆时针应反转动画角度（符合右手坐标系）
-        if ((rotAxis == AxisY || rotAxis == AxisZ) && !cw)
-        {
-            angle = -angle;
-        }
-        // 对 X 轴：顺时针为负角度，逆时针为正角度（需反转逻辑）
-        else if (rotAxis == AxisX && cw)
-        {
-            angle = -angle;
-        }
-    }
+
+
+    bool animating = controller.isRotating();
+    Axis rotAxis = controller.getRotationAxis();
+    int rotLayer = controller.getRotationLayer();
+    float angle = controller.getRotationAngle(); // 保持原值（正/负角度）
+
+    // 注意：我们不再做方向判断，不修改 angle，不做 angle = -angle
 
     // 遍历所有小立方块
     for (int x = 0; x < 3; ++x)

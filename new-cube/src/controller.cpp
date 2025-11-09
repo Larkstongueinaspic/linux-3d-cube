@@ -1,11 +1,29 @@
 #include "controller.h"
-#include <raylib.h>  // 键盘枚举KEY_* 定义
+#include <raylib.h> // 键盘枚举KEY_* 定义
 #include <cmath>
 
+
+bool getVisualClockwise(Axis axis, float angle)
+{
+    // 输入为 controller 提供的 angle（+为逆时针绕轴）
+    // 输出为：从轴的正向看，是否顺时针
+    switch (axis)
+    {
+    case AxisX:
+        return angle < 0; // 从 +X 看，负角度为顺时针
+    case AxisY:
+        return angle > 0; // 从 +Y 看，正角度为顺时针
+    case AxisZ:
+        return angle < 0; // 从 +Z 看，负角度为顺时针
+    }
+    return true; // fallback
+}
+
 // 构造，初始化摄像机和选择状态
-Controller::Controller() {
-    cameraYaw = 45.0f;    // 初始将视角偏向45度看魔方
-    cameraPitch = 30.0f;  // 往上俯视30度
+Controller::Controller()
+{
+    cameraYaw = 45.0f;     // 初始将视角偏向45度看魔方
+    cameraPitch = 30.0f;   // 往上俯视30度
     cameraDistance = 6.0f; // 摄像机距离魔方中心的距离
     selectedAxis = AxisX;
     selectedLayer = 0;
@@ -15,49 +33,64 @@ Controller::Controller() {
 }
 
 // 每帧调用：处理按键输入并更新状态
-void Controller::update(Cube& cube) {
+void Controller::update(Cube &cube)
+{
     // 摄像机控制 - WASD 控制视角环绕
-    float angleStep = 2.0f;  // 每帧调整角度步长
-    if (IsKeyDown(KEY_A)) {   // 左旋转视角（绕Y轴增加偏航角）
+    float angleStep = 2.0f; // 每帧调整角度步长
+    if (IsKeyDown(KEY_A))
+    { // 左旋转视角（绕Y轴增加偏航角）
         cameraYaw -= angleStep;
     }
-    if (IsKeyDown(KEY_D)) {   // 右旋转视角
+    if (IsKeyDown(KEY_D))
+    { // 右旋转视角
         cameraYaw += angleStep;
     }
-    if (IsKeyDown(KEY_W)) {   // 上视角（增加俯仰角，但有限制）
+    if (IsKeyDown(KEY_W))
+    { // 上视角（增加俯仰角，但有限制）
         cameraPitch += angleStep;
-        if (cameraPitch > 85.0f) cameraPitch = 85.0f;   // 防止过顶
+        if (cameraPitch > 85.0f)
+            cameraPitch = 85.0f; // 防止过顶
     }
-    if (IsKeyDown(KEY_S)) {   // 下视角
+    if (IsKeyDown(KEY_S))
+    { // 下视角
         cameraPitch -= angleStep;
-        if (cameraPitch < -85.0f) cameraPitch = -85.0f; // 防止过底
+        if (cameraPitch < -85.0f)
+            cameraPitch = -85.0f; // 防止过底
     }
 
     // 限制 yaw 在 0-360 (可选)
-    if (cameraYaw < 0) cameraYaw += 360.0f;
-    if (cameraYaw >= 360.0f) cameraYaw -= 360.0f;
-    
+    if (cameraYaw < 0)
+        cameraYaw += 360.0f;
+    if (cameraYaw >= 360.0f)
+        cameraYaw -= 360.0f;
+
     // 如果当前没有旋转动画进行，处理层选择和旋转输入
-    if (!rotating) {
+    if (!rotating)
+    {
         // 方向键选择轴和层：←→ 切换轴，↑↓ 切换层编号
-        if (IsKeyPressed(KEY_LEFT)) {
+        if (IsKeyPressed(KEY_LEFT))
+        {
             // 切换到前一个轴 (X->Z->Y->X)
             selectedAxis = static_cast<Axis>((static_cast<int>(selectedAxis) + 2) % 3);
         }
-        if (IsKeyPressed(KEY_RIGHT)) {
+        if (IsKeyPressed(KEY_RIGHT))
+        {
             // 切换到下一个轴
             selectedAxis = static_cast<Axis>((static_cast<int>(selectedAxis) + 1) % 3);
         }
-        if (IsKeyPressed(KEY_UP)) {
+        if (IsKeyPressed(KEY_UP))
+        {
             // 层索引 0-2 循环增加
             selectedLayer = (selectedLayer + 1) % 3;
         }
-        if (IsKeyPressed(KEY_DOWN)) {
+        if (IsKeyPressed(KEY_DOWN))
+        {
             // 层索引 循环减少
-            selectedLayer = (selectedLayer + 2) % 3;  // +2 模3 等效于 -1 模3
+            selectedLayer = (selectedLayer + 2) % 3; // +2 模3 等效于 -1 模3
         }
         // 当按下 J 或 K 键时，启动旋转动画
-        if (IsKeyPressed(KEY_J) || IsKeyPressed(KEY_K)) {
+        if (IsKeyPressed(KEY_J) || IsKeyPressed(KEY_K))
+        {
             rotating = true;
             rotAxis = selectedAxis;
             rotLayer = selectedLayer;
@@ -66,19 +99,24 @@ void Controller::update(Cube& cube) {
             currentAngle = 0.0f;
         }
     }
-    else {
+    else
+    {
         // 正在旋转动画中：更新角度
-        if (rotClockwise) {
+        if (rotClockwise)
+        {
             currentAngle += rotationSpeed;
-        } else {
+        }
+        else
+        {
             currentAngle -= rotationSpeed;
         }
         // 完成旋转时（绝对角度达到或超过90度）
-        if ((rotClockwise && currentAngle >= 90.0f) || (!rotClockwise && currentAngle <= -90.0f)) {
+        if ((rotClockwise && currentAngle >= 90.0f) || (!rotClockwise && currentAngle <= -90.0f))
+        {
             // 强制将角度调整为 ±90 完成位置
             currentAngle = rotClockwise ? 90.0f : -90.0f;
             // 调用 Cube 的 rotateLayer 更新魔方数据结构
-            cube.rotateLayer(rotAxis, rotLayer, rotClockwise);
+            cube.rotateLayer(rotAxis, rotLayer, getVisualClockwise(rotAxis, currentAngle));
             // 重置动画状态
             rotating = false;
             currentAngle = 0.0f;
