@@ -8,18 +8,30 @@ void Cube::initSolved(){
     // initialize cubies with solved-color stickers
     // mapping: +X=RED, -X=ORANGE, +Y=WHITE, -Y=YELLOW, +Z=BLUE, -Z=GREEN
     Color fc[6] = { RED, ORANGE, WHITE, YELLOW, BLUE, GREEN };
-    for(int x=0;x<3;++x) for(int y=0;y<3;++y) for(int z=0;z<3;++z){
-        Cubie &c = cubies[x][y][z];
-        c.ix = x; c.iy = y; c.iz = z;
-        for(int f=0; f<6; ++f) c.sticker[f] = (Color){0,0,0,255};
-        // assign face colors for outer cubies
-        if(x==2) c.sticker[FX] = fc[0];
-        if(x==0) c.sticker[BX] = fc[1];
-        if(y==2) c.sticker[FY] = fc[2];
-        if(y==0) c.sticker[BY] = fc[3];
-        if(z==2) c.sticker[FZ] = fc[4];
-        if(z==0) c.sticker[BZ] = fc[5];
-    }
+    for (int x = 0; x < 3; ++x)
+        for (int y = 0; y < 3; ++y)
+            for (int z = 0; z < 3; ++z)
+            {
+                Cubie &c = cubies[x][y][z];
+                c.ix = x;
+                c.iy = y;
+                c.iz = z;
+                for (int f = 0; f < 6; ++f)
+                    c.sticker[f] = (Color){0, 0, 0, 255};
+                // assign face colors for outer cubies
+                if (x == 2)
+                    c.sticker[FX] = fc[0];
+                if (x == 0)
+                    c.sticker[BX] = fc[1];
+                if (y == 2)
+                    c.sticker[FY] = fc[2];
+                if (y == 0)
+                    c.sticker[BY] = fc[3];
+                if (z == 2)
+                    c.sticker[FZ] = fc[4];
+                if (z == 0)
+                    c.sticker[BZ] = fc[5];
+            }
 }
 
 std::array<std::array<std::array<Cubie,3>,3>,3>& Cube::raw(){ return cubies; }
@@ -62,15 +74,17 @@ void Cube::drawCubie(const Cubie &c){
 
 static void rotateCubieStickers(std::array<Color,6> &s, int axis, int dir){
     // axis: 0=X,1=Y,2=Z; dir: +1 90deg, -1 -90deg
-    std::array<Color,6> old = s;
+    // axis: 旋转轴，0为x轴，1为y轴，2为z轴
+    // dir：旋转方向，+1：顺时针90度，-1：逆时针90度
+    std::array<Color,6> old = s;        //暂存当前各面颜色
     if(axis==1){ // Y axis rotation
         // FX <= FZ, FZ <= BX, BX <= BZ, BZ <= FX  (cw looking from +Y)
         if(dir==1){
             s[FX] = old[FZ]; s[FZ] = old[BX]; s[BX] = old[BZ]; s[BZ] = old[FX];
-            s[FY] = old[FY]; s[BY]=old[BY];
+            s[FY] = old[FY]; s[BY]= old[BY];        //将单个小方块的各个面的颜色进行调换，此时还没进行小方块的移动
         } else {
             s[FX] = old[BZ]; s[FZ] = old[FX]; s[BX] = old[FZ]; s[BZ] = old[BX];
-            s[FY] = old[FY]; s[BY]=old[BY];
+            s[FY] = old[FY]; s[BY]= old[BY];
         }
     } else if(axis==0){ // X axis
         if(dir==1){
@@ -91,36 +105,56 @@ static void rotateCubieStickers(std::array<Color,6> &s, int axis, int dir){
     }
 }
 
-void Cube::permuteLayer(std::array<std::array<std::array<Cubie,3>,3>,3> &tmp, int ax, int layer, int dir){
-    // ax: 0=X,1=Y,2=Z
+void Cube::permuteLayer(std::array<std::array<std::array<Cubie, 3>, 3>, 3> &tmp, int ax, int layer, int dir)
+{   // dir:旋转角度，+1：顺时针90度，-1：逆时针90度
+    // ax: 0=X,1=Y,2=Z，判断旋转轴
     // copy current
     tmp = cubies;
-    auto idx = [&](int a,int b,int c)->Cubie&{ return cubies[a][b][c]; };
+    auto idx = [&](int a, int b, int c) -> Cubie &
+    { return cubies[a][b][c]; };
     // permute positions and sticker orientations
-    if(ax==1){ // rotate around Y-axis: layer is y index
-        for(int x=0;x<3;++x) for(int z=0;z<3;++z){
-            int nx = (dir==1) ? (2 - z) : z;
-            int nz = (dir==1) ? x : (2 - x);
-            cubies[nx][layer][nz] = tmp[x][layer][z];
-            rotateCubieStickers(cubies[nx][layer][nz].sticker, 1, dir);
-            cubies[nx][layer][nz].ix = nx; cubies[nx][layer][nz].iy = layer; cubies[nx][layer][nz].iz = nz;
-        }
-    } else if(ax==0){ // X-axis, layer is x index
-        for(int y=0;y<3;++y) for(int z=0;z<3;++z){
-            int ny = (dir==1) ? z : (2 - z);
-            int nz = (dir==1) ? (2 - y) : y;
-            cubies[layer][ny][nz] = tmp[layer][y][z];
-            rotateCubieStickers(cubies[layer][ny][nz].sticker, 0, dir);
-            cubies[layer][ny][nz].ix = layer; cubies[layer][ny][nz].iy = ny; cubies[layer][ny][nz].iz = nz;
-        }
-    } else { // Z-axis, layer is z index
-        for(int x=0;x<3;++x) for(int y=0;y<3;++y){
-            int nx = (dir==1) ? (2 - y) : y;
-            int ny = (dir==1) ? x : (2 - x);
-            cubies[nx][ny][layer] = tmp[x][y][layer];
-            rotateCubieStickers(cubies[nx][ny][layer].sticker, 2, dir);
-            cubies[nx][ny][layer].ix = nx; cubies[nx][ny][layer].iy = ny; cubies[nx][ny][layer].iz = layer;
-        }
+    if (ax == 1)
+    { // rotate around Y-axis: layer is y index
+        //绕y轴进行旋转
+        for (int x = 0; x < 3; ++x)
+            for (int z = 0; z < 3; ++z)
+            {
+                int nx = (dir == 1) ? z : (2 - z);
+                int nz = (dir == 1) ? (2 - x) : x;
+                cubies[nx][layer][nz] = tmp[x][layer][z];
+                rotateCubieStickers(cubies[nx][layer][nz].sticker, 1, dir);
+                cubies[nx][layer][nz].ix = nx;
+                cubies[nx][layer][nz].iy = layer;
+                cubies[nx][layer][nz].iz = nz;
+            }
+    }
+    else if (ax == 0)
+    { // X-axis, layer is x index
+        for (int y = 0; y < 3; ++y)
+            for (int z = 0; z < 3; ++z)
+            {
+                int ny = (dir == 1) ? z : (2 - z);
+                int nz = (dir == 1) ? (2 - y) : y;
+                cubies[layer][ny][nz] = tmp[layer][y][z];
+                rotateCubieStickers(cubies[layer][ny][nz].sticker, 0, -dir);
+                cubies[layer][ny][nz].ix = layer;
+                cubies[layer][ny][nz].iy = ny;
+                cubies[layer][ny][nz].iz = nz;
+            }
+    }
+    else
+    { // Z-axis, layer is z index
+        for (int x = 0; x < 3; ++x)
+            for (int y = 0; y < 3; ++y)
+            {
+                int nx = (dir == 1) ? y : (2 - y);
+                int ny = (dir == 1) ? (2 - x) : x;
+                cubies[nx][ny][layer] = tmp[x][y][layer];
+                rotateCubieStickers(cubies[nx][ny][layer].sticker, 2, -dir);
+                cubies[nx][ny][layer].ix = nx;
+                cubies[nx][ny][layer].iy = ny;
+                cubies[nx][ny][layer].iz = layer;
+            }
     }
 }
 
