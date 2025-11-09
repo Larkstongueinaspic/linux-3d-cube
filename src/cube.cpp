@@ -72,12 +72,41 @@ void Cube::drawCubie(const Cubie &c){
     DrawCubeV(Vector3Add(pos, off), (Vector3){0.7f,0.7f,0.02f}, c.sticker[BZ]);
 }
 
+// static void rotateCubieStickers(std::array<Color,6> &s, int axis, int dir){
+//     // axis: 0=X,1=Y,2=Z; dir: +1 90deg, -1 -90deg
+//     std::array<Color,6> old = s;
+//     if(axis==1){ // Y axis rotation
+//         // FX <= FZ, FZ <= BX, BX <= BZ, BZ <= FX  (cw looking from +Y)
+//         if(dir==1){
+//             s[FX] = old[FZ]; s[FZ] = old[BX]; s[BX] = old[BZ]; s[BZ] = old[FX];
+//             s[FY] = old[FY]; s[BY]=old[BY];
+//         } else {
+//             s[FX] = old[BZ]; s[FZ] = old[FX]; s[BX] = old[FZ]; s[BZ] = old[BX];
+//             s[FY] = old[FY]; s[BY]=old[BY];
+//         }
+//     } else if(axis==0){ // X axis
+//         if(dir==1){
+//             s[FY] = old[BZ]; s[FZ] = old[FY]; s[BY] = old[FZ]; s[BZ] = old[BY];
+//             s[FX]=old[FX]; s[BX]=old[BX];
+//         } else {
+//             s[FY] = old[FZ]; s[FZ] = old[BY]; s[BY] = old[BZ]; s[BZ] = old[FY];
+//             s[FX]=old[FX]; s[BX]=old[BX];
+//         }
+//     } else { // Z axis
+//         if(dir==1){
+//             s[FX] = old[BY]; s[BY] = old[BX]; s[BX] = old[FY]; s[FY] = old[FX];
+//             s[FZ]=old[FZ]; s[BZ]=old[BZ];
+//         } else {
+//             s[FX] = old[FY]; s[BY] = old[FX]; s[BX] = old[BY]; s[FY] = old[BX];
+//             s[FZ]=old[FZ]; s[BZ]=old[BZ];
+//         }
+//     }
+// }
+
 static void rotateCubieStickers(std::array<Color,6> &s, int axis, int dir){
     // axis: 0=X,1=Y,2=Z; dir: +1 90deg, -1 -90deg
-    // axis: 旋转轴，0为x轴，1为y轴，2为z轴
-    // dir：旋转方向，+1：顺时针90度，-1：逆时针90度
-    std::array<Color,6> old = s;        //暂存当前各面颜色
-    if(axis==1){ // Y axis rotation
+    std::array<Color,6> old = s;
+    if(axis==1){ // Y axis rotation - 这个已经是正确的
         // FX <= FZ, FZ <= BX, BX <= BZ, BZ <= FX  (cw looking from +Y)
         if(dir==1){
             s[FX] = old[FZ]; s[FZ] = old[BX]; s[BX] = old[BZ]; s[BZ] = old[FX];
@@ -86,20 +115,24 @@ static void rotateCubieStickers(std::array<Color,6> &s, int axis, int dir){
             s[FX] = old[BZ]; s[FZ] = old[FX]; s[BX] = old[FZ]; s[BZ] = old[BX];
             s[FY] = old[FY]; s[BY]= old[BY];
         }
-    } else if(axis==0){ // X axis
+    } else if(axis==0){ // X axis - 修正后的逻辑
         if(dir==1){
-            s[FY] = old[BZ]; s[FZ] = old[FY]; s[BY] = old[FZ]; s[BZ] = old[BY];
-            s[FX]=old[FX]; s[BX]=old[BX];
-        } else {
+            // 从+X方向看顺时针：FY->FZ, FZ->BY, BY->BZ, BZ->FY
             s[FY] = old[FZ]; s[FZ] = old[BY]; s[BY] = old[BZ]; s[BZ] = old[FY];
             s[FX]=old[FX]; s[BX]=old[BX];
+        } else {
+            // 从+X方向看逆时针：FY->BZ, FZ->FY, BY->FZ, BZ->BY  
+            s[FY] = old[BZ]; s[FZ] = old[FY]; s[BY] = old[FZ]; s[BZ] = old[BY];
+            s[FX]=old[FX]; s[BX]=old[BX];
         }
-    } else { // Z axis
+    } else { // Z axis - 修正后的逻辑
         if(dir==1){
-            s[FX] = old[BY]; s[BY] = old[BX]; s[BX] = old[FY]; s[FY] = old[FX];
+            // 从+Z方向看顺时针：FX->FY, FY->BX, BX->BY, BY->FX
+            s[FX] = old[FY]; s[FY] = old[BX]; s[BX] = old[BY]; s[BY] = old[FX];
             s[FZ]=old[FZ]; s[BZ]=old[BZ];
         } else {
-            s[FX] = old[FY]; s[BY] = old[FX]; s[BX] = old[BY]; s[FY] = old[BX];
+            // 从+Z方向看逆时针：FX->BY, FY->FX, BX->FY, BY->BX
+            s[FX] = old[BY]; s[FY] = old[FX]; s[BX] = old[FY]; s[BY] = old[BX];
             s[FZ]=old[FZ]; s[BZ]=old[BZ];
         }
     }
