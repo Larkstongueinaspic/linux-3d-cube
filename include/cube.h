@@ -17,9 +17,11 @@ enum Face
 struct Cubie
 {
     // sticker colors by face index
-    std::array<Color, 6> sticker;
+    std::array<Color, 6> sticker;// 6个面的贴纸颜色
     // logical coordinates in [-1,0,1] index space
-    int ix, iy, iz;
+    int ix, iy, iz;             // 在 [-1, 0, 1] 索引空间中的逻辑坐标(0,0,0) = 中心块（实际不存在）(1,0,0) = 右侧面的中心块 (1,1,0) = 右上边缘块
+                                // XXXXX
+                                // 实际上是[0,1,2]索引空间
 };
 
 class Cube
