@@ -6,7 +6,8 @@ int main() {
     // 创建魔方对象、控制器和渲染器
     Cube cube;
     Controller controller;
-    Renderer renderer(800, 600);  // 窗口初始化，设置尺寸 800x600
+    // Renderer renderer(800, 600);  // 窗口初始化，设置尺寸 800x600
+    Renderer renderer(1280, 800);
     
     // 主循环，直到窗口关闭
     while (!WindowShouldClose()) {
