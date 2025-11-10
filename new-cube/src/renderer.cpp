@@ -196,15 +196,28 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
             else if (rotAxis == AxisZ)
                 pivot = {0.0f, 0.0f, layerCoord};
 
+<<<<<<< HEAD
+=======
+            // 旋转角度（注意方向）
+            float angleDraw = angle;
+>>>>>>> d2aa523fdfc54a376dbea00170552c42f7968068
 
             // 变换：绕该层中心轴旋转
             rlTranslatef(pivot.x, pivot.y, pivot.z);
             if (rotAxis == AxisX)
+<<<<<<< HEAD
                 rlRotatef(angle, 1.0f, 0.0f, 0.0f);
             if (rotAxis == AxisY)
                 rlRotatef(angle, 0.0f, 1.0f, 0.0f);
             if (rotAxis == AxisZ)
                 rlRotatef(angle, 0.0f, 0.0f, 1.0f);
+=======
+                rlRotatef(angleDraw, 1.0f, 0.0f, 0.0f);
+            if (rotAxis == AxisY)
+                rlRotatef(angleDraw, 0.0f, 1.0f, 0.0f);
+            if (rotAxis == AxisZ)
+                rlRotatef(angleDraw, 0.0f, 0.0f, 1.0f);
+>>>>>>> d2aa523fdfc54a376dbea00170552c42f7968068
             rlTranslatef(-pivot.x, -pivot.y, -pivot.z);
 
             // 计算层的最小/最大 corner（与前面相同）

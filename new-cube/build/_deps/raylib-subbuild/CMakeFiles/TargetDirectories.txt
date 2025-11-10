@@ -1,0 +1,3 @@
+/Users/bo_yu/Documents/bupt/l_linux/linux-3d-cube/new-cube/build/_deps/raylib-subbuild/CMakeFiles/raylib-populate.dir
+/Users/bo_yu/Documents/bupt/l_linux/linux-3d-cube/new-cube/build/_deps/raylib-subbuild/CMakeFiles/edit_cache.dir
+/Users/bo_yu/Documents/bupt/l_linux/linux-3d-cube/new-cube/build/_deps/raylib-subbuild/CMakeFiles/rebuild_cache.dir
