@@ -30,6 +30,7 @@ Controller::Controller()
     rotating = false;
     currentAngle = 0.0f;
     rotationSpeed = 6.0f; // 每帧旋转6度，90度约需15帧（~0.25秒）
+    ifHighlight = true;
 }
 
 // 每帧调用：处理按键输入并更新状态
@@ -57,7 +58,6 @@ void Controller::update(Cube &cube)
         if (cameraPitch < -85.0f)
             cameraPitch = -85.0f; // 防止过底
     }
-
     // 限制 yaw 在 0-360 (可选)
     if (cameraYaw < 0)
         cameraYaw += 360.0f;
@@ -97,6 +97,11 @@ void Controller::update(Cube &cube)
             // J 设为顺时针，K 逆时针
             rotClockwise = IsKeyPressed(KEY_J);
             currentAngle = 0.0f;
+        }
+        if (IsKeyPressed(KEY_P))
+        { 
+            ifHighlight = !ifHighlight;
+            // 是否显示选中层高亮
         }
     }
     else

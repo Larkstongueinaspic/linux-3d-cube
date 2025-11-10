@@ -24,6 +24,7 @@ public:
     int   getRotationLayer() const   { return rotLayer; }
     bool  isRotationClockwise() const { return rotClockwise; }
     float getRotationAngle() const   { return currentAngle; }
+    bool getIfHighlight() const { return ifHighlight; }
 
 private:
     // 摄像机绕魔方的角度和距离
@@ -40,4 +41,5 @@ private:
     bool  rotClockwise;
     float currentAngle;    // 当前已旋转的角度 (度数)
     float rotationSpeed;   // 每帧旋转速度 (度)
+    bool ifHighlight; // 是否显示选中层高亮
 };
