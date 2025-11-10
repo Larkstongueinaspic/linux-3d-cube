@@ -18,7 +18,8 @@ std::vector<RotationCommand> generateScramble(int count)
         do
         {
             axis = static_cast<Axis>(std::rand() % 3);
-            layer = std::rand() % 3;
+            layer = std::rand() % 2;
+            if(layer == 1) layer = 2; // 只选0或2层 
         } while (!sequence.empty() && axis == lastAxis && layer == lastLayer);
 
         bool clockwise = std::rand() % 2 == 0;

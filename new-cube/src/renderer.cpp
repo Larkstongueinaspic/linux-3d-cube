@@ -179,8 +179,8 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
     }
 
     /******************************************/ /******************************************/
-    // --- 动态绘制选中层的粗线框和透明罩，使其随旋转动画同步 ---
-    if (controller.getIfHighlight())
+    // --- 动态绘制选中层的线框和透明罩，使其随旋转动画同步 ---
+    if (controller.getIsHighlight())
     {
         if (animating)
         {

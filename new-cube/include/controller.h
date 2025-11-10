@@ -1,6 +1,7 @@
 #pragma once
 #include "cube.h"
 #include "scrambler.h"
+#include "solver.h"
 
 // 控制器类：处理用户输入和动画状态
 class Controller {
@@ -25,8 +26,9 @@ public:
     int   getRotationLayer() const   { return rotLayer; }
     bool  isRotationClockwise() const { return rotClockwise; }
     float getRotationAngle() const   { return currentAngle; }
-    bool getIfHighlight() const { return ifHighlight; }
+    bool getIsHighlight() const { return isHighlight; }
     bool getIsScrambling() const { return isScrambling; }
+    bool getIsSolving() const { return isSolving; }
 
 private:
     // 摄像机绕魔方的角度和距离
@@ -43,6 +45,7 @@ private:
     bool  rotClockwise;
     float currentAngle;    // 当前已旋转的角度 (度数)
     float rotationSpeed;   // 每帧旋转速度 (度)
-    bool ifHighlight; // 是否显示选中层高亮
+    bool isHighlight; // 是否显示选中层高亮
     bool isScrambling;
+    bool isSolving;
 };
