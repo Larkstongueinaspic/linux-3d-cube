@@ -305,6 +305,7 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
     int layerIndex = controller.getSelectedLayer();
     DrawText(TextFormat("Selected Layer: Axis %s, Index %d \t Press P to display the highlight", axisName, layerIndex), textX, textY, 20, DARKGRAY);
     DrawText("W/A/S/D: Rotate View   Arrow keys: Select Axis/Layer   J/K: Rotate Layer", textX, textY + 30, 20, DARKGRAY);
+    if (controller.getIsScrambling()) DrawText("Scrambling...", textX, textY + (30*2), 20, RED);
 
     EndDrawing();
 }

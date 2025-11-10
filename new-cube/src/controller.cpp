@@ -1,7 +1,8 @@
 #include "controller.h"
 #include <raylib.h> // 键盘枚举KEY_* 定义
 #include <cmath>
-
+#include <queue>
+std::queue<RotationCommand> scrambleQueue;
 
 bool getVisualClockwise(Axis axis, float angle)
 {
@@ -31,11 +32,50 @@ Controller::Controller()
     currentAngle = 0.0f;
     rotationSpeed = 6.0f; // 每帧旋转6度，90度约需15帧（~0.25秒）
     ifHighlight = true;
+    isScrambling = false;
 }
 
 // 每帧调用：处理按键输入并更新状态
 void Controller::update(Cube &cube)
 {
+    /***************/ /***************/ /***************/
+    // 若打乱队列非空，优先执行打乱
+    if (!scrambleQueue.empty())
+    {
+        if (!rotating)
+        {
+            RotationCommand cmd = scrambleQueue.front();
+            scrambleQueue.pop();
+            rotating = true;
+            rotAxis = cmd.axis;
+            rotLayer = cmd.layer;
+            rotClockwise = cmd.clockwise;
+            currentAngle = 0.0f;
+        }
+        else
+        {
+            if (rotClockwise)
+                currentAngle += rotationSpeed;
+            else
+                currentAngle -= rotationSpeed;
+            // 完成旋转时（绝对角度达到或超过90度）
+            if ((rotClockwise && currentAngle >= 90.0f) || (!rotClockwise && currentAngle <= -90.0f))
+            {
+                // 强制将角度调整为 ±90 完成位置
+                currentAngle = rotClockwise ? 90.0f : -90.0f;
+                // 调用 Cube 的 rotateLayer 更新魔方数据结构
+                cube.rotateLayer(rotAxis, rotLayer, getVisualClockwise(rotAxis, currentAngle));
+                // 重置动画状态
+                rotating = false;
+                currentAngle = 0.0f;
+            }
+        }
+        return;
+    }
+    else if (isScrambling)
+        isScrambling = false;           // 打乱完成
+    /***************/ /***************/ /***************/
+
     // 摄像机控制 - WASD 控制视角环绕
     float angleStep = 2.0f; // 每帧调整角度步长
     if (IsKeyDown(KEY_A))
@@ -99,9 +139,16 @@ void Controller::update(Cube &cube)
             currentAngle = 0.0f;
         }
         if (IsKeyPressed(KEY_P))
-        { 
+        {
             ifHighlight = !ifHighlight;
             // 是否显示选中层高亮
+        }
+        if (IsKeyPressed(KEY_R) && !rotating && scrambleQueue.empty())
+        {
+            auto scramble = generateScramble(20);
+            for (auto &cmd : scramble)
+                scrambleQueue.push(cmd);
+            isScrambling = true;
         }
     }
     else

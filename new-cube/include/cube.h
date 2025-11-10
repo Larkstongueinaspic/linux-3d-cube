@@ -8,6 +8,10 @@ enum Face { LEFT = 0, RIGHT = 1, DOWN = 2, UP = 3, BACK = 4, FRONT = 5 };
 // 坐标轴枚举，用于选择旋转哪一轴方向的层
 enum Axis { AxisX = 0, AxisY = 1, AxisZ = 2 };
 
+inline bool operator<(const Color& a, const Color& b) {
+    return std::tie(a.r, a.g, a.b, a.a) < std::tie(b.r, b.g, b.b, b.a);
+}
+
 // 表示一个小立方体（魔方的小块）
 struct CubePiece {
     // 每个面一个颜色（如果该面没有贴纸，则设为透明NONE）

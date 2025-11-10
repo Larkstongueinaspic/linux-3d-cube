@@ -1,6 +1,7 @@
 #pragma once
 #include "cube.h"
 #include "controller.h"
+#include "scrambler.h"
 #include <raylib.h>
 
 class Renderer {
