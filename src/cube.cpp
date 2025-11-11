@@ -1,216 +1,275 @@
 #include "cube.h"
-#include "raymath.h"   // 提供 Vector3Add、Vector3Rotate 等
+#include <cstring> // 为使用 memset 设置透明色
 #include <cmath>
 
-Cube::Cube(float gap_): gap(gap_) { initSolved(); }
+// 定义一个透明颜色常量，用于表示无贴纸的面
+static const Color NONE = {0, 0, 0, 0}; // RGBA全为0即透明
+static const Color MYORANGE = {217, 152, 52, 255}; // 橙色
+static const Color MYRED = {210-10, 45-10, 31-10, 255}; // 红色
+static const Color MYYELLOW = {229, 229, 75, 255}; // 黄色
+static const Color MYWHITE = {229, 229, 229, 255}; // 白色
+static const Color MYGREEN = {49, 113, 29, 255}; // 绿色
+static const Color MYBLUE = {0, 0, 220, 255}; // 蓝色
 
-void Cube::initSolved(){
-    // initialize cubies with solved-color stickers
-    // mapping: +X=RED, -X=ORANGE, +Y=WHITE, -Y=YELLOW, +Z=BLUE, -Z=GREEN
-    Color fc[6] = { RED, ORANGE, WHITE, YELLOW, BLUE, GREEN };
+// Cube构造函数：初始化魔方状态（魔方初始为复原状态，每个面的颜色统一）
+Cube::Cube()
+{
+    // 定义六个面的颜色（标准魔方色：白、黄、红、橙、绿、蓝）
+    Color colLeft = MYORANGE;
+    Color colRight = MYRED;
+    Color colDown = MYYELLOW;
+    Color colUp = MYWHITE;
+    Color colBack = BLUE;
+    Color colFront = MYGREEN;
+
+    // Color colLeft = ORANGE;
+    // Color colRight = RED;
+    // Color colDown = YELLOW;
+    // Color colUp = WHITE;
+    // Color colBack = BLUE;
+    // Color colFront = GREEN;
+
+    // 遍历所有27个位置 (x=0..2, y=0..2, z=0..2)
+    int index = 0;
     for (int x = 0; x < 3; ++x)
+    {
         for (int y = 0; y < 3; ++y)
+        {
             for (int z = 0; z < 3; ++z)
             {
-                Cubie &c = cubies[x][y][z];
-                c.ix = x;
-                c.iy = y;
-                c.iz = z;
+                CubePiece &piece = pieces[index++];
+                // 默认所有面无色，稍后根据位置设置
                 for (int f = 0; f < 6; ++f)
-                    c.sticker[f] = (Color){0, 0, 0, 255};
-                // assign face colors for outer cubies
-                if (x == 2)
-                    c.sticker[FX] = fc[0];
+                {
+                    piece.faceColor[f] = NONE;
+                }
+                // 如果在最左侧x=0位置，给左面贴纸
                 if (x == 0)
-                    c.sticker[BX] = fc[1];
-                if (y == 2)
-                    c.sticker[FY] = fc[2];
+                    piece.faceColor[LEFT] = colLeft;
+                // 最右侧x=2位置，右面贴纸
+                if (x == 2)
+                    piece.faceColor[RIGHT] = colRight;
+                // 最底层y=0位置，下表面贴纸
                 if (y == 0)
-                    c.sticker[BY] = fc[3];
-                if (z == 2)
-                    c.sticker[FZ] = fc[4];
+                    piece.faceColor[DOWN] = colDown;
+                // 最顶层y=2位置，上表面贴纸
+                if (y == 2)
+                    piece.faceColor[UP] = colUp;
+                // 最后排z=0位置，背面贴纸
                 if (z == 0)
-                    c.sticker[BZ] = fc[5];
+                    piece.faceColor[BACK] = colBack;
+                // 最前排z=2位置，前面贴纸
+                if (z == 2)
+                    piece.faceColor[FRONT] = colFront;
+                // 设置 grid 对应坐标 指向该 piece
+                grid[x][y][z] = &piece;
             }
-}
-
-std::array<std::array<std::array<Cubie,3>,3>,3>& Cube::raw(){ return cubies; }
-
-void Cube::draw(){
-    for(int x=0;x<3;++x) for(int y=0;y<3;++y) for(int z=0;z<3;++z){
-        drawCubie(cubies[x][y][z]);
-    }
-}
-
-void Cube::drawCubie(const Cubie &c){
-    // world position: center at origin, spacing 2.0
-    float spacing = 1.05f; // cube size 1.0
-    Vector3 pos = { (c.ix-1)*spacing, (c.iy-1)*spacing, (c.iz-1)*spacing };
-    // draw body
-    DrawCubeV(pos, (Vector3){0.9f,0.9f,0.9f}, GRAY);
-    DrawCubeWiresV(pos, (Vector3){0.9f,0.9f,0.9f}, BLACK);
-    // draw stickers as thin cubes offset from faces
-    float stickerThickness = 0.02f;
-    float half = 0.9f/2.0f;
-    // +X face
-    Vector3 off = {half + stickerThickness/2, 0, 0};
-    DrawCubeV(Vector3Add(pos, off), (Vector3){0.02f,0.7f,0.7f}, c.sticker[FX]);
-    // -X
-    off = {-half - stickerThickness/2, 0, 0};
-    DrawCubeV(Vector3Add(pos, off), (Vector3){0.02f,0.7f,0.7f}, c.sticker[BX]);
-    // +Y
-    off = {0, half + stickerThickness/2, 0};
-    DrawCubeV(Vector3Add(pos, off), (Vector3){0.7f,0.02f,0.7f}, c.sticker[FY]);
-    // -Y
-    off = {0, -half - stickerThickness/2, 0};
-    DrawCubeV(Vector3Add(pos, off), (Vector3){0.7f,0.02f,0.7f}, c.sticker[BY]);
-    // +Z
-    off = {0,0, half + stickerThickness/2};
-    DrawCubeV(Vector3Add(pos, off), (Vector3){0.7f,0.7f,0.02f}, c.sticker[FZ]);
-    // -Z
-    off = {0,0, -half - stickerThickness/2};
-    DrawCubeV(Vector3Add(pos, off), (Vector3){0.7f,0.7f,0.02f}, c.sticker[BZ]);
-}
-
-// static void rotateCubieStickers(std::array<Color,6> &s, int axis, int dir){
-//     // axis: 0=X,1=Y,2=Z; dir: +1 90deg, -1 -90deg
-//     std::array<Color,6> old = s;
-//     if(axis==1){ // Y axis rotation
-//         // FX <= FZ, FZ <= BX, BX <= BZ, BZ <= FX  (cw looking from +Y)
-//         if(dir==1){
-//             s[FX] = old[FZ]; s[FZ] = old[BX]; s[BX] = old[BZ]; s[BZ] = old[FX];
-//             s[FY] = old[FY]; s[BY]=old[BY];
-//         } else {
-//             s[FX] = old[BZ]; s[FZ] = old[FX]; s[BX] = old[FZ]; s[BZ] = old[BX];
-//             s[FY] = old[FY]; s[BY]=old[BY];
-//         }
-//     } else if(axis==0){ // X axis
-//         if(dir==1){
-//             s[FY] = old[BZ]; s[FZ] = old[FY]; s[BY] = old[FZ]; s[BZ] = old[BY];
-//             s[FX]=old[FX]; s[BX]=old[BX];
-//         } else {
-//             s[FY] = old[FZ]; s[FZ] = old[BY]; s[BY] = old[BZ]; s[BZ] = old[FY];
-//             s[FX]=old[FX]; s[BX]=old[BX];
-//         }
-//     } else { // Z axis
-//         if(dir==1){
-//             s[FX] = old[BY]; s[BY] = old[BX]; s[BX] = old[FY]; s[FY] = old[FX];
-//             s[FZ]=old[FZ]; s[BZ]=old[BZ];
-//         } else {
-//             s[FX] = old[FY]; s[BY] = old[FX]; s[BX] = old[BY]; s[FY] = old[BX];
-//             s[FZ]=old[FZ]; s[BZ]=old[BZ];
-//         }
-//     }
-// }
-
-static void rotateCubieStickers(std::array<Color,6> &s, int axis, int dir){
-    // axis: 0=X,1=Y,2=Z; dir: +1 90deg, -1 -90deg
-    std::array<Color,6> old = s;
-    if(axis==1){ // Y axis rotation - 这个已经是正确的
-        // FX <= FZ, FZ <= BX, BX <= BZ, BZ <= FX  (cw looking from +Y)
-        if(dir==1){
-            s[FX] = old[FZ]; s[FZ] = old[BX]; s[BX] = old[BZ]; s[BZ] = old[FX];
-            s[FY] = old[FY]; s[BY]= old[BY];        //将单个小方块的各个面的颜色进行调换，此时还没进行小方块的移动
-        } else {
-            s[FX] = old[BZ]; s[FZ] = old[FX]; s[BX] = old[FZ]; s[BZ] = old[BX];
-            s[FY] = old[FY]; s[BY]= old[BY];
-        }
-    } else if(axis==0){ // X axis - 修正后的逻辑
-        if(dir==1){
-            // 从+X方向看顺时针：FY->FZ, FZ->BY, BY->BZ, BZ->FY
-            s[FY] = old[FZ]; s[FZ] = old[BY]; s[BY] = old[BZ]; s[BZ] = old[FY];
-            s[FX]=old[FX]; s[BX]=old[BX];
-        } else {
-            // 从+X方向看逆时针：FY->BZ, FZ->FY, BY->FZ, BZ->BY  
-            s[FY] = old[BZ]; s[FZ] = old[FY]; s[BY] = old[FZ]; s[BZ] = old[BY];
-            s[FX]=old[FX]; s[BX]=old[BX];
-        }
-    } else { // Z axis - 修正后的逻辑
-        if(dir==1){
-            // 从+Z方向看顺时针：FX->FY, FY->BX, BX->BY, BY->FX
-            s[FX] = old[FY]; s[FY] = old[BX]; s[BX] = old[BY]; s[BY] = old[FX];
-            s[FZ]=old[FZ]; s[BZ]=old[BZ];
-        } else {
-            // 从+Z方向看逆时针：FX->BY, FY->FX, BX->FY, BY->BX
-            s[FX] = old[BY]; s[FY] = old[FX]; s[BX] = old[FY]; s[BY] = old[BX];
-            s[FZ]=old[FZ]; s[BZ]=old[BZ];
         }
     }
 }
 
-void Cube::permuteLayer(std::array<std::array<std::array<Cubie, 3>, 3>, 3> &tmp, int ax, int layer, int dir)
-{   // dir:旋转角度，+1：顺时针90度，-1：逆时针90度
-    // ax: 0=X,1=Y,2=Z，判断旋转轴
-    // copy current
-    tmp = cubies;
-    auto idx = [&](int a, int b, int c) -> Cubie &
-    { return cubies[a][b][c]; };
-    // permute positions and sticker orientations
-    if (ax == 1)
-    { // rotate around Y-axis: layer is y index
-        //绕y轴进行旋转
-        for (int x = 0; x < 3; ++x)
-            for (int z = 0; z < 3; ++z)
-            {
-                int nx = (dir == 1) ? z : (2 - z);
-                int nz = (dir == 1) ? (2 - x) : x;
-                cubies[nx][layer][nz] = tmp[x][layer][z];
-                rotateCubieStickers(cubies[nx][layer][nz].sticker, 1, dir);
-                cubies[nx][layer][nz].ix = nx;
-                cubies[nx][layer][nz].iy = layer;
-                cubies[nx][layer][nz].iz = nz;
-            }
-    }
-    else if (ax == 0)
-    { // X-axis, layer is x index
+// 旋转某一层 (axis: X/Y/Z, layerIndex: 0/1/2, clockwise: 顺时针或逆时针)
+void Cube::rotateLayer(Axis axis, int layerIndex, bool clockwise)
+{
+    // 1. 先交换该层的 grid 指针（小方块位置交换）
+    rotateFacePointers(axis, layerIndex, clockwise);
+    // 2. 更新该层上每个小方块的朝向贴纸颜色
+    // 注意：grid 映射已经更新，但小方块本身仍然携带旧的贴纸布局，需要同步旋转
+    if (axis == AxisX)
+    {
+        // 遍历该X层上所有小块
         for (int y = 0; y < 3; ++y)
+        {
             for (int z = 0; z < 3; ++z)
             {
-                int ny = (dir == 1) ? z : (2 - z);
-                int nz = (dir == 1) ? (2 - y) : y;
-                cubies[layer][ny][nz] = tmp[layer][y][z];
-                rotateCubieStickers(cubies[layer][ny][nz].sticker, 0, -dir);
-                cubies[layer][ny][nz].ix = layer;
-                cubies[layer][ny][nz].iy = ny;
-                cubies[layer][ny][nz].iz = nz;
+                grid[layerIndex][y][z]->rotateAroundX(clockwise);
             }
+        }
     }
-    else
-    { // Z-axis, layer is z index
+    else if (axis == AxisY)
+    {
         for (int x = 0; x < 3; ++x)
+        {
+            for (int z = 0; z < 3; ++z)
+            {
+                grid[x][layerIndex][z]->rotateAroundY(clockwise);
+            }
+        }
+    }
+    else if (axis == AxisZ)
+    {
+        for (int x = 0; x < 3; ++x)
+        {
             for (int y = 0; y < 3; ++y)
             {
-                int nx = (dir == 1) ? y : (2 - y);
-                int ny = (dir == 1) ? (2 - x) : x;
-                cubies[nx][ny][layer] = tmp[x][y][layer];
-                rotateCubieStickers(cubies[nx][ny][layer].sticker, 2, -dir);
-                cubies[nx][ny][layer].ix = nx;
-                cubies[nx][ny][layer].iy = ny;
-                cubies[nx][ny][layer].iz = layer;
+                grid[x][y][layerIndex]->rotateAroundZ(clockwise);
             }
+        }
     }
 }
 
-void Cube::rotateLayerY(int layerIndex, int dir){
-    std::array<std::array<std::array<Cubie,3>,3>,3> tmp;
-    permuteLayer(tmp, 1, layerIndex, dir);
+// 辅助函数：旋转某层的九个 grid 指针（小块位置）
+// 将给定 axis层 (3x3) 的指针矩阵顺时针或逆时针旋转90度
+void Cube::rotateFacePointers(Axis axis, int layerIndex, bool clockwise)
+{
+    // 建立临时3x3阵列保存当前层的指针布局
+    CubePiece *temp[3][3];
+    if (axis == AxisX)
+    {
+        // 提取当前 X=layerIndex 切片 (固定x，其它y,z变化)
+        for (int y = 0; y < 3; ++y)
+            for (int z = 0; z < 3; ++z)
+                temp[y][z] = grid[layerIndex][y][z];
+        // 旋转 YZ 平面 (顺时针 or 逆时针)
+        for (int oldY = 0; oldY < 3; ++oldY)
+        {
+            for (int oldZ = 0; oldZ < 3; ++oldZ)
+            {
+                int newY, newZ;
+                if (clockwise)
+                {
+                    newY = oldZ;
+                    newZ = 2 - oldY;
+                }
+                else
+                {
+                    newY = 2 - oldZ;
+                    newZ = oldY;
+                }
+                grid[layerIndex][newY][newZ] = temp[oldY][oldZ];
+            }
+        }
+    }
+    else if (axis == AxisY)
+    {
+        // 提取当前 Y=layerIndex 切片 (固定y，其它x,z变化)
+        for (int x = 0; x < 3; ++x)
+            for (int z = 0; z < 3; ++z)
+                temp[x][z] = grid[x][layerIndex][z];
+        // 旋转 XZ 平面
+        for (int oldX = 0; oldX < 3; ++oldX)
+        {
+            for (int oldZ = 0; oldZ < 3; ++oldZ)
+            {
+                int newX, newZ;
+                if (clockwise)
+                {
+                    newX = oldZ;
+                    newZ = 2 - oldX;
+                }
+                else
+                {
+                    newX = 2 - oldZ;
+                    newZ = oldX;
+                }
+                grid[newX][layerIndex][newZ] = temp[oldX][oldZ];
+            }
+        }
+    }
+    else if (axis == AxisZ)
+    {
+        // 提取当前 Z=layerIndex 切片 (固定z，其它x,y变化)
+        for (int x = 0; x < 3; ++x)
+            for (int y = 0; y < 3; ++y)
+                temp[x][y] = grid[x][y][layerIndex];
+        // 旋转 XY 平面
+        for (int oldX = 0; oldX < 3; ++oldX)
+        {
+            for (int oldY = 0; oldY < 3; ++oldY)
+            {
+                int newX, newY;
+                if (clockwise)
+                {
+                    newX = oldY;
+                    newY = 2 - oldX;
+                }
+                else
+                {
+                    newX = 2 - oldY;
+                    newY = oldX;
+                }
+                grid[newX][newY][layerIndex] = temp[oldX][oldY];
+            }
+        }
+    }
 }
 
-void Cube::rotateLayerX(int layerIndex, int dir){
-    std::array<std::array<std::array<Cubie,3>,3>,3> tmp;
-    permuteLayer(tmp, 0, layerIndex, dir);
+// CubePiece 绕 X 轴旋转（调整其6个面贴纸的朝向颜色）
+void CubePiece::rotateAroundX(bool clockwise)
+{
+    Color old[6];
+    memcpy(old, faceColor, sizeof(old)); // 备份原始颜色
+    if (clockwise)
+    {
+        // 从 X 轴正向（+X）看：顺时针为 Up → Front → Down → Back → Up
+        faceColor[UP] = old[FRONT];
+        faceColor[FRONT] = old[DOWN];
+        faceColor[DOWN] = old[BACK];
+        faceColor[BACK] = old[UP];
+        faceColor[LEFT] = old[LEFT];
+        faceColor[RIGHT] = old[RIGHT];
+    }
+    else
+    {
+        // 逆时针：Up → Back → Down → Front → Up
+        faceColor[UP] = old[BACK];
+        faceColor[BACK] = old[DOWN];
+        faceColor[DOWN] = old[FRONT];
+        faceColor[FRONT] = old[UP];
+        faceColor[LEFT] = old[LEFT];
+        faceColor[RIGHT] = old[RIGHT];
+    }
 }
 
-void Cube::rotateLayerZ(int layerIndex, int dir){
-    std::array<std::array<std::array<Cubie,3>,3>,3> tmp;
-    permuteLayer(tmp, 2, layerIndex, dir);
+// 绕 Y 轴旋转
+void CubePiece::rotateAroundY(bool clockwise)
+{
+    Color old[6];
+    memcpy(old, faceColor, sizeof(old));
+    if (clockwise)
+    {
+        // 顺时针 (从Y轴正向即上往下看): Front->Right, Right->Back, Back->Left, Left->Front
+        faceColor[RIGHT] = old[FRONT];
+        faceColor[BACK] = old[RIGHT];
+        faceColor[LEFT] = old[BACK];
+        faceColor[FRONT] = old[LEFT];
+        faceColor[UP] = old[UP];
+        faceColor[DOWN] = old[DOWN];
+    }
+    else
+    {
+        // 逆时针: Front->Left, Left->Back, Back->Right, Right->Front
+        faceColor[LEFT] = old[FRONT];
+        faceColor[BACK] = old[LEFT];
+        faceColor[RIGHT] = old[BACK];
+        faceColor[FRONT] = old[RIGHT];
+        faceColor[UP] = old[UP];
+        faceColor[DOWN] = old[DOWN];
+    }
 }
 
-void Cube::randomize(int moves){
-    for(int i=0;i<moves;++i){
-        int ax = rand()%3;
-        int layer = rand()%3;
-        int dir = (rand()%2)?1:-1;
-        permuteLayer(*new std::array<std::array<std::array<Cubie,3>,3>,3>(cubies), ax, layer, dir);
+void CubePiece::rotateAroundZ(bool clockwise)
+{
+    Color old[6];
+    memcpy(old, faceColor, sizeof(old));
+    if (clockwise)
+    {
+        // 从 Z 轴正向（+Z）看：顺时针为 Up → Left → Down → Right → Up
+        faceColor[UP] = old[LEFT];
+        faceColor[LEFT] = old[DOWN];
+        faceColor[DOWN] = old[RIGHT];
+        faceColor[RIGHT] = old[UP];
+        faceColor[FRONT] = old[FRONT];
+        faceColor[BACK] = old[BACK];
+    }
+    else
+    {
+        // 逆时针：Up → Right → Down → Left → Up
+        faceColor[UP] = old[RIGHT];
+        faceColor[RIGHT] = old[DOWN];
+        faceColor[DOWN] = old[LEFT];
+        faceColor[LEFT] = old[UP];
+        faceColor[FRONT] = old[FRONT];
+        faceColor[BACK] = old[BACK];
     }
 }

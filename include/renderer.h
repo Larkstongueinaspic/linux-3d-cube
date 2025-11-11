@@ -1,23 +1,19 @@
 #pragma once
-#include "raylib.h"
 #include "cube.h"
+#include "controller.h"
+#include "scrambler.h"
+#include <raylib.h>
 
 class Renderer {
 public:
-    Renderer(int w=1024,int h=768);
+    Renderer(int screenWidth, int screenHeight);
     ~Renderer();
-    void run();
-private:
-    int width, height;
-    Camera camera;
-    Cube cube;
-    // selection
-    int selX=1, selY=1, selZ=1;
-    bool animating=false;
-    float animProgress=0.0f;
-    int animAxis=1, animLayer=1, animDir=1;
+    // 绘制一帧场景
+    void drawFrame(const Cube &cube, const Controller &controller);
 
-    void processInput();
-    void update(float dt);
-    void draw();
+private:
+    Camera3D camera;  // Raylib 3D 摄像机
+    int screenWidth;
+    int screenHeight;
+    Image background;
 };
