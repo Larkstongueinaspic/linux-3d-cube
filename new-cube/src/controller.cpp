@@ -27,7 +27,7 @@ Controller::Controller()
 {
     cameraYaw = 45.0f;     // 初始将视角偏向45度看魔方
     cameraPitch = 30.0f;   // 往上俯视30度
-    cameraDistance = 6.0f; // 摄像机距离魔方中心的距离
+    cameraDistance = 9.0f; // 摄像机距离魔方中心的距离
     selectedAxis = AxisX;
     selectedLayer = 0;
     rotating = false;
@@ -36,6 +36,7 @@ Controller::Controller()
     isHighlight = true;
     isSolving = false;
     isScrambling = false;
+    isTurning = false;
 }
 
 // 每帧调用：处理按键输入并更新状态
@@ -117,7 +118,7 @@ void Controller::update(Cube &cube)
     /***************/ /***************/ /***************/
 
     // 摄像机控制 - WASD 控制视角环绕
-    float angleStep = 2.0f; // 每帧调整角度步长
+    float angleStep = 3.0f; // 每帧调整角度步长
     if (IsKeyDown(KEY_A))
     { // 左旋转视角（绕Y轴增加偏航角）
         cameraYaw -= angleStep;
@@ -138,6 +139,22 @@ void Controller::update(Cube &cube)
         if (cameraPitch < -85.0f)
             cameraPitch = -85.0f; // 防止过底
     }
+    if (IsKeyDown(KEY_Q))
+    { // 拉近摄像机
+        cameraDistance -= 0.1f;
+        if (cameraDistance < 6.0f)
+            cameraDistance = 6.0f; // 最小距离限制
+    }
+    if (IsKeyDown(KEY_E))
+    { // 拉远摄像机
+        cameraDistance += 0.1f;
+        if (cameraDistance > 12.0f)
+            cameraDistance = 12.0f; // 最大距离限制
+    }
+    if (IsKeyPressed(KEY_T)){
+        isTurning = true;
+        rotating = true;
+    }
     // 限制 yaw 在 0-360 (可选)
     if (cameraYaw < 0)
         cameraYaw += 360.0f;
@@ -147,6 +164,13 @@ void Controller::update(Cube &cube)
     // 如果当前没有旋转动画进行，处理层选择和旋转输入
     if (!rotating)
     {
+        if (IsKeyPressed(KEY_R) && scrambleQueue.empty())
+        {
+            auto scramble = generateScramble(20);
+            for (auto &cmd : scramble)
+                scrambleQueue.push(cmd);
+            isScrambling = true;
+        }
         if (IsKeyPressed(KEY_U) && solverQueue.empty()) {
             std::cout << "U pressed! Calling Solver..." << std::endl;
             std::vector<RotationCommandSolver> solution = Solver::solve(cube);
@@ -193,13 +217,6 @@ void Controller::update(Cube &cube)
             isHighlight = !isHighlight;
             // 是否显示选中层高亮
         }
-        if (IsKeyPressed(KEY_R) && scrambleQueue.empty())
-        {
-            auto scramble = generateScramble(20);
-            for (auto &cmd : scramble)
-                scrambleQueue.push(cmd);
-            isScrambling = true;
-        }
     }
     else
     {
@@ -218,7 +235,12 @@ void Controller::update(Cube &cube)
             // 强制将角度调整为 ±90 完成位置
             currentAngle = rotClockwise ? 90.0f : -90.0f;
             // 调用 Cube 的 rotateLayer 更新魔方数据结构
-            cube.rotateLayer(rotAxis, rotLayer, getVisualClockwise(rotAxis, currentAngle));
+            if(!isTurning) cube.rotateLayer(rotAxis, rotLayer, getVisualClockwise(rotAxis, currentAngle));
+            else {
+                for(int i = 0; i <= 1; i++) for(int j=0;j<=2;j++) cube.rotateLayer(AxisX, j, getVisualClockwise(rotAxis, currentAngle));
+                SetTargetFPS(80);
+                isTurning = false;
+            }
             // 重置动画状态
             rotating = false;
             currentAngle = 0.0f;

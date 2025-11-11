@@ -4,17 +4,30 @@
 
 // 定义一个透明颜色常量，用于表示无贴纸的面
 static const Color NONE = {0, 0, 0, 0}; // RGBA全为0即透明
+static const Color MYORANGE = {217, 152, 52, 255}; // 橙色
+static const Color MYRED = {210-10, 45-10, 31-10, 255}; // 红色
+static const Color MYYELLOW = {229, 229, 75, 255}; // 黄色
+static const Color MYWHITE = {229, 229, 229, 255}; // 白色
+static const Color MYGREEN = {49, 113, 29, 255}; // 绿色
+static const Color MYBLUE = {0, 0, 220, 255}; // 蓝色
 
 // Cube构造函数：初始化魔方状态（魔方初始为复原状态，每个面的颜色统一）
 Cube::Cube()
 {
     // 定义六个面的颜色（标准魔方色：白、黄、红、橙、绿、蓝）
-    Color colLeft = ORANGE;
-    Color colRight = RED;
-    Color colDown = YELLOW;
-    Color colUp = WHITE;
+    Color colLeft = MYORANGE;
+    Color colRight = MYRED;
+    Color colDown = MYYELLOW;
+    Color colUp = MYWHITE;
     Color colBack = BLUE;
-    Color colFront = GREEN;
+    Color colFront = MYGREEN;
+
+    // Color colLeft = ORANGE;
+    // Color colRight = RED;
+    // Color colDown = YELLOW;
+    // Color colUp = WHITE;
+    // Color colBack = BLUE;
+    // Color colFront = GREEN;
 
     // 遍历所有27个位置 (x=0..2, y=0..2, z=0..2)
     int index = 0;
@@ -220,7 +233,6 @@ void CubePiece::rotateAroundY(bool clockwise)
         faceColor[BACK] = old[RIGHT];
         faceColor[LEFT] = old[BACK];
         faceColor[FRONT] = old[LEFT];
-        // 上下面的贴纸不变
         faceColor[UP] = old[UP];
         faceColor[DOWN] = old[DOWN];
     }

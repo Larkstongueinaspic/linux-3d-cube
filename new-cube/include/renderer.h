@@ -15,4 +15,5 @@ private:
     Camera3D camera;  // Raylib 3D 摄像机
     int screenWidth;
     int screenHeight;
+    Image background;
 };

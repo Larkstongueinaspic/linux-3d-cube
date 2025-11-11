@@ -29,6 +29,7 @@ public:
     bool getIsHighlight() const { return isHighlight; }
     bool getIsScrambling() const { return isScrambling; }
     bool getIsSolving() const { return isSolving; }
+    bool getIsTurning() const { return isTurning; }
 
 private:
     // 摄像机绕魔方的角度和距离
@@ -48,4 +49,5 @@ private:
     bool isHighlight; // 是否显示选中层高亮
     bool isScrambling;
     bool isSolving;
+    bool isTurning;
 };

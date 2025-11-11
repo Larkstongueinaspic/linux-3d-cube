@@ -1,18 +1,21 @@
 #include "renderer.h"
 #include <rlgl.h>
 #include <raymath.h> // 如果需要使用Raylib数学函数（也可使用cmath）
+#include <raylib.h>
 
 Renderer::Renderer(int screenWidth, int screenHeight)
     : screenWidth(screenWidth), screenHeight(screenHeight)
 {
     // 初始化窗口和3D摄像机
     InitWindow(screenWidth, screenHeight, "3D Rubik's Cube (Day 1)");
+    // background = LoadTexture("/Users/bo_yu/Documents/bupt/l_linux/linux-3d-cube/new-cube/include/background.jpg");
     // 设置摄像机参数
     camera.position = {0.0f, 0.0f, 0.0f}; // 将在每帧根据yaw/pitch计算
     camera.target = {0.0f, 0.0f, 0.0f};   // 魔方中心原点
     camera.up = {0.0f, 1.0f, 0.0f};       // 世界上方向 (Y轴)
     camera.fovy = 45.0f;
-    SetTargetFPS(60); // 设置帧率
+    background = LoadImage("/Users/bo_yu/Documents/bupt/l_linux/linux-3d-cube/new-cube/include/background.jpg");
+    SetTargetFPS(80); // 设置帧率
 }
 
 Renderer::~Renderer()
@@ -20,13 +23,13 @@ Renderer::~Renderer()
     CloseWindow();
 }
 
+
 void Renderer::drawFrame(const Cube &cube, const Controller &controller)
 {
     // 根据 controller 的摄像机角度计算摄像机位置 (球坐标转换)
     float yaw = controller.getCameraYaw();
     float pitch = controller.getCameraPitch();
     float distance = controller.getCameraDistance();
-    distance *= 1.5f; // 放大距离以更好地看到魔方
     // 将角度转成弧度以计算三角函数
     float radYaw = yaw * (PI / 180.0f);
     float radPitch = pitch * (PI / 180.0f);
@@ -37,7 +40,10 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
     camera.target = {0.0f, 0.0f, 0.0f}; // 始终看向原点
 
     BeginDrawing();
-    ClearBackground(LIGHTGRAY); // 使用浅灰背景，以便白色贴纸清晰可见
+    // ClearBackground(DARKGRAY);
+    ClearBackground({60,60,60,255});
+
+    // ImageClearBackground(&background, DARKGRAY);
 
     BeginMode3D(camera);
 
@@ -72,6 +78,9 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
                     {
                         inRotatingLayer = true;
                     }
+                    if (controller.getIsTurning()){
+                        inRotatingLayer = true;
+                    }
                 }
 
                 if (animating && inRotatingLayer)
@@ -80,7 +89,14 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
                     rlPushMatrix();
                     // 定义该层旋转轴经过的中心点（轴线穿过魔方中心或边中心）
                     Vector3 pivot = {0.0f, 0.0f, 0.0f};
-                    if (rotAxis == AxisX)
+                    if (controller.getIsTurning()){
+                        pivot = {worldX, 0.0f, 0.0f}; // X层的轴线通过该层中心 (x定值, y=z=0)
+                        rlTranslatef(pivot.x, pivot.y, pivot.z);
+                        SetTargetFPS(40);
+                        rlRotatef(angle, 1.0f, 0.0f, 0.0f);
+                        rlTranslatef(-pivot.x, -pivot.y, -pivot.z);
+                    }
+                    if (rotAxis == AxisX || controller.getIsTurning())
                     {
                         pivot = {worldX, 0.0f, 0.0f}; // X层的轴线通过该层中心 (x定值, y=z=0)
                         rlTranslatef(pivot.x, pivot.y, pivot.z);
@@ -104,39 +120,95 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
                     // 旋转后再平移小块到其世界位置
                     rlTranslatef(worldX, worldY, worldZ);
 
+
                     // 绘制该小块（黑色底立方体 + 6个有色面）
-                    DrawCubeV(Vector3{0, 0, 0}, (Vector3){0.9f, 0.9f, 0.9f}, DARKGRAY);
-                    DrawCubeWiresV(Vector3{0, 0, 0}, (Vector3){0.9f, 0.9f, 0.9f}, BLACK);
-                    // DrawCube(Vector3{0, 0, 0}, 0.9f, 0.9f, 0.9f, BLACK); // 小块主体
+                    DrawCubeV(Vector3{0, 0, 0}, (Vector3){0.95f, 0.95f, 0.95f}, {30, 30, 30, 255});
+                    DrawCubeWiresV(Vector3{0, 0, 0}, (Vector3){0.95f, 0.95f, 0.95f}, BLACK);
                     // 绘制每个有颜色的面贴纸（用薄板表示）
-                    float half = 0.45f; // 小块半边长
+                    float half = 0.475f; // 小块半边长
                     float pad = 0.01f;  // 贴纸板厚度或偏移
-                    // 逐面检查，绘制有贴纸的面
                     if (piece->faceColor[LEFT].a != 0)
                     {
-                        DrawCube(Vector3{-half - pad, 0, 0}, 0.02f, 0.7f, 0.7f, piece->faceColor[LEFT]);
+                        Color col = piece->faceColor[LEFT];
+                        DrawCube(Vector3{-half - pad, 0, 0}, 0.02f, 0.89f, 0.75f, col);
+                        DrawCube(Vector3{-half - pad, 0, 0}, 0.02f, 0.75f, 0.89f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{-half - pad - 0.01f, 0.375f * i, 0.375f * j},
+                                    Vector3{-half - pad + 0.01f, 0.375f * i, 0.375f * j},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[RIGHT].a != 0)
                     {
-                        DrawCube(Vector3{half + pad, 0, 0}, 0.02f, 0.7f, 0.7f, piece->faceColor[RIGHT]);
+                        Color col = piece->faceColor[RIGHT];
+                        DrawCube(Vector3{half + pad, 0, 0}, 0.02f, 0.89f, 0.75f, col);
+                        DrawCube(Vector3{half + pad, 0, 0}, 0.02f, 0.75f, 0.89f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{half + pad - 0.01f, 0.375f * i, 0.375f * j},
+                                    Vector3{half + pad + 0.01f, 0.375f * i, 0.375f * j},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[DOWN].a != 0)
                     {
-                        DrawCube(Vector3{0, -half - pad, 0}, 0.7f, 0.02f, 0.7f, piece->faceColor[DOWN]);
+                        // DrawCube(Vector3{0, -half - pad, 0}, 0.75f, 0.02f, 0.75f, piece->faceColor[DOWN]);
+                        Color col = piece->faceColor[DOWN];
+                        DrawCube(Vector3{0, -half - pad, 0}, 0.89f, 0.02f, 0.75f, col);
+                        DrawCube(Vector3{0, -half - pad, 0}, 0.75f, 0.02f, 0.89f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{0.375f * i, -half - pad - 0.01f, 0.375f * j},
+                                    Vector3{0.375f * i, -half - pad + 0.01f, 0.375f * j},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[UP].a != 0)
                     {
-                        DrawCube(Vector3{0, half + pad, 0}, 0.7f, 0.02f, 0.7f, piece->faceColor[UP]);
+                        // DrawCube(Vector3{0, half + pad, 0}, 0.75f, 0.02f, 0.75f, piece->faceColor[UP]);
+                        Color col = piece->faceColor[UP];
+                        DrawCube(Vector3{0, half + pad, 0}, 0.89f, 0.02f, 0.75f, col);
+                        DrawCube(Vector3{0, half + pad, 0}, 0.75f, 0.02f, 0.89f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{0.375f * i, half + pad - 0.01f, 0.375f * j},
+                                    Vector3{0.375f * i, half + pad + 0.01f, 0.375f * j},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[BACK].a != 0)
                     {
-                        DrawCube(Vector3{0, 0, -half - pad}, 0.7f, 0.7f, 0.02f, piece->faceColor[BACK]);
+                        // DrawCube(Vector3{0, 0, -half - pad}, 0.75f, 0.75f, 0.02f, piece->faceColor[BACK]);
+                        Color col = piece->faceColor[BACK];
+                        DrawCube(Vector3{0, 0, -half - pad}, 0.89f, 0.75f, 0.02f, col);
+                        DrawCube(Vector3{0, 0, -half - pad}, 0.75f, 0.89f, 0.02f, col);
+                        for(int i = -1; i < 2; i += 2){ 
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{0.375f * i, 0.375f * j, -half - pad - 0.01f},
+                                    Vector3{0.375f * i, 0.375f * j, -half - pad + 0.01f},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[FRONT].a != 0)
                     {
-                        DrawCube(Vector3{0, 0, half + pad}, 0.7f, 0.7f, 0.02f, piece->faceColor[FRONT]);
+                        // DrawCube(Vector3{0, 0, half + pad}, 0.75f, 0.75f, 0.02f, piece->faceColor[FRONT]);
+                        Color col = piece->faceColor[FRONT];
+                        DrawCube(Vector3{0, 0, half + pad}, 0.89f, 0.75f, 0.02f, col);
+                        DrawCube(Vector3{0, 0, half + pad}, 0.75f, 0.89f, 0.02f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{0.375f * i, 0.375f * j, half + pad - 0.01f},
+                                    Vector3{0.375f * i, 0.375f * j, half + pad + 0.01f},
+                                    0.07f, 0.07f, 16, col);  
+                        }
                     }
-
                     rlPopMatrix();
                 }
                 else
@@ -144,33 +216,91 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
                     // 普通绘制（无动画或不在旋转层的小块）
                     rlPushMatrix();
                     rlTranslatef(worldX, worldY, worldZ);
-                    DrawCubeV(Vector3{0, 0, 0}, (Vector3){0.9f, 0.9f, 0.9f}, DARKGRAY);
-                    DrawCubeWiresV(Vector3{0, 0, 0}, (Vector3){0.9f, 0.9f, 0.9f}, BLACK);
+                    DrawCubeV(Vector3{0, 0, 0}, (Vector3){0.95f, 0.95f, 0.95f}, {30, 30, 30, 255});
+                    DrawCubeWiresV(Vector3{0, 0, 0}, (Vector3){0.95f, 0.95f, 0.95f}, BLACK);
                     // DrawCube(Vector3{0, 0, 0}, 0.9f, 0.9f, 0.9f, BLACK);
-                    float half = 0.45f, pad = 0.01f;
+                    float half = 0.475f, pad = 0.01f;
                     if (piece->faceColor[LEFT].a != 0)
                     {
-                        DrawCube(Vector3{-half - pad, 0, 0}, 0.02f, 0.7f, 0.7f, piece->faceColor[LEFT]);
+                        Color col = piece->faceColor[LEFT];
+                        DrawCube(Vector3{-half - pad, 0, 0}, 0.02f, 0.89f, 0.75f, col);
+                        DrawCube(Vector3{-half - pad, 0, 0}, 0.02f, 0.75f, 0.89f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{-half - pad - 0.01f, 0.375f * i, 0.375f * j},
+                                    Vector3{-half - pad + 0.01f, 0.375f * i, 0.375f * j},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[RIGHT].a != 0)
                     {
-                        DrawCube(Vector3{half + pad, 0, 0}, 0.02f, 0.7f, 0.7f, piece->faceColor[RIGHT]);
+                        Color col = piece->faceColor[RIGHT];
+                        DrawCube(Vector3{half + pad, 0, 0}, 0.02f, 0.89f, 0.75f, col);
+                        DrawCube(Vector3{half + pad, 0, 0}, 0.02f, 0.75f, 0.89f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{half + pad - 0.01f, 0.375f * i, 0.375f * j},
+                                    Vector3{half + pad + 0.01f, 0.375f * i, 0.375f * j},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[DOWN].a != 0)
                     {
-                        DrawCube(Vector3{0, -half - pad, 0}, 0.7f, 0.02f, 0.7f, piece->faceColor[DOWN]);
+                        // DrawCube(Vector3{0, -half - pad, 0}, 0.75f, 0.02f, 0.75f, piece->faceColor[DOWN]);
+                        Color col = piece->faceColor[DOWN];
+                        DrawCube(Vector3{0, -half - pad, 0}, 0.89f, 0.02f, 0.75f, col);
+                        DrawCube(Vector3{0, -half - pad, 0}, 0.75f, 0.02f, 0.89f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{0.375f * i, -half - pad - 0.01f, 0.375f * j},
+                                    Vector3{0.375f * i, -half - pad + 0.01f, 0.375f * j},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[UP].a != 0)
                     {
-                        DrawCube(Vector3{0, half + pad, 0}, 0.7f, 0.02f, 0.7f, piece->faceColor[UP]);
+                        // DrawCube(Vector3{0, half + pad, 0}, 0.75f, 0.02f, 0.75f, piece->faceColor[UP]);
+                        Color col = piece->faceColor[UP];
+                        DrawCube(Vector3{0, half + pad, 0}, 0.89f, 0.02f, 0.75f, col);
+                        DrawCube(Vector3{0, half + pad, 0}, 0.75f, 0.02f, 0.89f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{0.375f * i, half + pad - 0.01f, 0.375f * j},
+                                    Vector3{0.375f * i, half + pad + 0.01f, 0.375f * j},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[BACK].a != 0)
                     {
-                        DrawCube(Vector3{0, 0, -half - pad}, 0.7f, 0.7f, 0.02f, piece->faceColor[BACK]);
+                        // DrawCube(Vector3{0, 0, -half - pad}, 0.75f, 0.75f, 0.02f, piece->faceColor[BACK]);
+                        Color col = piece->faceColor[BACK];
+                        DrawCube(Vector3{0, 0, -half - pad}, 0.89f, 0.75f, 0.02f, col);
+                        DrawCube(Vector3{0, 0, -half - pad}, 0.75f, 0.89f, 0.02f, col);
+                        for(int i = -1; i < 2; i += 2){ 
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{0.375f * i, 0.375f * j, -half - pad - 0.01f},
+                                    Vector3{0.375f * i, 0.375f * j, -half - pad + 0.01f},
+                                    0.07f, 0.07f, 16, col);
+                        }
                     }
                     if (piece->faceColor[FRONT].a != 0)
                     {
-                        DrawCube(Vector3{0, 0, half + pad}, 0.7f, 0.7f, 0.02f, piece->faceColor[FRONT]);
+                        // DrawCube(Vector3{0, 0, half + pad}, 0.75f, 0.75f, 0.02f, piece->faceColor[FRONT]);
+                        Color col = piece->faceColor[FRONT];
+                        DrawCube(Vector3{0, 0, half + pad}, 0.89f, 0.75f, 0.02f, col);
+                        DrawCube(Vector3{0, 0, half + pad}, 0.75f, 0.89f, 0.02f, col);
+                        for(int i = -1; i < 2; i += 2){
+                            for(int j = -1; j < 2; j += 2)
+                                DrawCylinderEx(
+                                    Vector3{0.375f * i, 0.375f * j, half + pad - 0.01f},
+                                    Vector3{0.375f * i, 0.375f * j, half + pad + 0.01f},
+                                    0.07f, 0.07f, 16, col);  
+                        }
                     }
                     rlPopMatrix();
                 }
@@ -180,7 +310,8 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
 
     /******************************************/ /******************************************/
     // --- 动态绘制选中层的线框和透明罩，使其随旋转动画同步 ---
-    if (controller.getIsHighlight())
+    if (controller.getIsHighlight() && !controller.getIsTurning() 
+      && !controller.getIsScrambling() && !controller.getIsSolving())
     {
         if (animating)
         {
@@ -235,7 +366,7 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
             BoundingBox layerBox = {minCorner, maxCorner};
 
             // 半透明罩子
-            Color boxColor = ColorAlpha(GOLD, 0.15f);
+            Color boxColor = ColorAlpha(GOLD, 0.3f);
             Vector3 center = {
                 (minCorner.x + maxCorner.x) / 2,
                 (minCorner.y + maxCorner.y) / 2,
@@ -251,7 +382,7 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
             rlPopMatrix();
         }
         // --- 添加：绘制选中层的线框高亮区域 ---
-        else
+        else if (!controller.getIsScrambling() && !controller.getIsSolving())
         {
             Axis selAxis = controller.getSelectedAxis();
             int selLayer = controller.getSelectedLayer();
@@ -279,7 +410,7 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
                 minCorner.z = z - 0.5f;
                 maxCorner.z = z + 0.5f;
             }
-            Color boxColor = ColorAlpha(GOLD, 0.2f);
+            Color boxColor = ColorAlpha(GOLD, 0.3f);
             DrawCube({(minCorner.x + maxCorner.x) / 2,
                       (minCorner.y + maxCorner.y) / 2,
                       (minCorner.z + maxCorner.z) / 2},
@@ -299,13 +430,19 @@ void Renderer::drawFrame(const Cube &cube, const Controller &controller)
     EndMode3D();
 
     // 文字UI：显示当前选择轴和层，以及操作提示
-    int textX = 10, textY = 10;
+    int textX = 15, textY = 15, i = 0;
     Axis axis = controller.getSelectedAxis();
     const char *axisName = (axis == AxisX ? "X" : (axis == AxisY ? "Y" : "Z"));
     int layerIndex = controller.getSelectedLayer();
-    DrawText(TextFormat("Selected Layer: Axis %s, Index %d \t Press P to display the highlight", axisName, layerIndex), textX, textY, 20, DARKGRAY);
-    DrawText("W/A/S/D: Rotate View   Arrow keys: Select Axis/Layer   J/K: Rotate Layer", textX, textY + 30, 20, DARKGRAY);
-    if (controller.getIsScrambling()) DrawText("Scrambling...", textX, textY + (30*2), 20, RED);
-
+    DrawText(TextFormat("Selected Layer: Axis %s, Index %d \t Press P to (un)Display the Highlight", axisName, layerIndex), textX, textY + 30*(i++), 20, LIGHTGRAY);
+    DrawText("W/A/S/D: Rotate View", textX, textY + 30*(i++), 20, LIGHTGRAY);
+    DrawText("Arrow Keys: Select Axis/Layer ", textX, textY + 30*(i++), 20, LIGHTGRAY);
+    DrawText("J/K: Rotate Layer", textX, textY + 30*(i++), 20, LIGHTGRAY);
+    DrawText("Q/E: Zoom in/out", textX, textY + 30*(i++), 20, LIGHTGRAY);
+    DrawText("T: Turn Up Side Down", textX, textY + 30*(i++), 20, LIGHTGRAY);
+    DrawText("R: Randomly Scramble the Rubik", textX, textY + 30*(i++), 20, LIGHTGRAY);
+    DrawText("U: Solve the Rubik Automaticly", textX, textY + 30*(i++), 20, LIGHTGRAY);
+    if (controller.getIsScrambling()) DrawText("Scrambling...", textX, textY + 30*(i++), 20, PURPLE);
+    else if (controller.getIsSolving()) DrawText("Solving...", textX, textY + 30*(i++), 20, PURPLE);
     EndDrawing();
 }
