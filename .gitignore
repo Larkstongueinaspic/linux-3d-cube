@@ -1,0 +1,39 @@
+# 编译输出
+/build/
+
+# CMake 构建文件
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# 可执行文件（Unix）
+*.out
+*.o
+*.a
+*.so
+*.exe
+
+# VSCode
+.vscode/
+
+# MacOS
+.DS_Store
+
+# IDE 临时文件
+*.log
+*.obj
+*.user
+*.suo
+
+# Raylib 构建缓存（如果用 raylib/src 编译）
+raylib/src/*.o
+
+# 生成的纹理或临时资源（可选）
+*.bmp
+*.tga
+*.tmp
+
+# Swap 文件
+*~
+*.swp
