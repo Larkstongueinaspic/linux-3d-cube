@@ -74,7 +74,7 @@ void Controller::update(Cube &cube)
                 currentAngle = 0.0f;
             }
         }
-        return;
+        // return;
     }
     else if (isScrambling)
         isScrambling = false;           // 打乱完成
@@ -111,7 +111,7 @@ void Controller::update(Cube &cube)
                 currentAngle = 0.0f;
             }
         }
-        return;
+        // return;
     }
     else if (isSolving)
         isSolving = false;

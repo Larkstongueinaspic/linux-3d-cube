@@ -7,7 +7,7 @@ Renderer::Renderer(int screenWidth, int screenHeight)
     : screenWidth(screenWidth), screenHeight(screenHeight)
 {
     // 初始化窗口和3D摄像机
-    InitWindow(screenWidth, screenHeight, "3D Rubik's Cube (Day 1)");
+    InitWindow(screenWidth, screenHeight, "3D Rubik's Cube");
     // background = LoadTexture("/Users/bo_yu/Documents/bupt/l_linux/linux-3d-cube/new-cube/include/background.jpg");
     // 设置摄像机参数
     camera.position = {0.0f, 0.0f, 0.0f}; // 将在每帧根据yaw/pitch计算
